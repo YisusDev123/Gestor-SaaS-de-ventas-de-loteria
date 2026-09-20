@@ -1,0 +1,24 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Award, Search } from 'lucide-react';
+import { useState } from 'react';
+
+import { apiRequest } from '../../shared/api/api-client.js';
+import { ErrorState, LoadingState } from '../../shared/components/PageState.jsx';
+import { prizeSchema } from '../../shared/schemas/api.js';
+import { prepareFinancialIntent, resolveFinancialIntent } from '../../shared/utils/financial-intent.js';
+import { formatCostaRicaDateTime, formatCrc } from '../../shared/utils/formatters.js';
+
+export function PrizesPage() {
+  const client = useQueryClient();
+  const [filter, setFilter] = useState('PENDING_PAYMENT');
+  const [input, setInput] = useState('');
+  const [code, setCode] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  void confirmed;
+  const prize = useQuery({ queryKey: ['prize', code], queryFn: () => apiRequest(`/results/tickets/${encodeURIComponent(code)}/prize`).then((body) => prizeSchema.parse(body.data)), enabled: Boolean(code), retry: false });
+  const draws = useQuery({ queryKey: ['prize-draws'], queryFn: () => apiRequest('/reports/draws?limit=50').then((body) => body.data) });
+  const winners = useQuery({ queryKey: ['prize-winners', draws.data?.map((draw) => draw.drawPublicId)], queryFn: async () => { const lists = await Promise.all((draws.data || []).map(async (draw) => { const body = await apiRequest(`/reports/draws/${draw.drawPublicId}/winners?limit=100`); return (body.data || []).map((winner) => ({ ...winner, lotteryName: draw.lotteryName, modalityName: draw.modalityName, scheduledAt: draw.scheduledAt })); })); return lists.flat(); }, enabled: Boolean(draws.data?.length) });
+  const payment = useMutation({ mutationFn: async (winner) => { const payload = { expectedPrizeAmount: winner.prizeAmount, confirmed: true }; const requestId = await prepareFinancialIntent('pay-prize', { ticketCode: winner.ticketCode, expectedPrizeAmount: winner.prizeAmount }); return apiRequest(`/results/tickets/${encodeURIComponent(winner.ticketCode)}/prize/pay`, { method: 'POST', body: { requestId, ...payload } }); }, onSuccess: () => { resolveFinancialIntent('pay-prize'); client.invalidateQueries({ queryKey: ['prize-winners'] }); if (code) prize.refetch(); } });
+  const filteredWinners = (winners.data || []).filter((winner) => winner.prizeStatus === filter);
+  return <main className="page"><header className="page-header"><div><p className="eyebrow">Premios</p><h1>Premios por pagar</h1><p>Consulta rápidamente los premios pendientes y los ya pagados.</p></div><label className="date-filter">Filtro<select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="PENDING_PAYMENT">Premios pendientes</option><option value="PAID">Premios pagados</option></select></label></header><form className="history-search" onSubmit={(event) => { event.preventDefault(); setConfirmed(false); setCode(input.trim()); }}><Search /><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Código del ticket" /><button className="button button--primary">Consultar</button></form>{draws.isPending || winners.isPending ? <LoadingState /> : draws.isError ? <ErrorState error={draws.error} onRetry={draws.refetch} /> : winners.isError ? <ErrorState error={winners.error} onRetry={winners.refetch} /> : <section className="panel prize-list"><div className="panel-heading"><div><p className="eyebrow">Listado</p><h2>{filter === 'PENDING_PAYMENT' ? 'Premios pendientes' : 'Premios pagados'}</h2></div><span>{filteredWinners.length} premio(s)</span></div>{filteredWinners.length === 0 ? <p className="muted">No hay premios en este estado.</p> : filteredWinners.map((winner) => <article className="prize-list-row" key={winner.ticketCode}><div><strong>{winner.ticketCode}</strong><small>{winner.lotteryName} · {winner.modalityName} · {formatCostaRicaDateTime(winner.createdAt)}</small></div><strong>{formatCrc(winner.prizeAmount)}</strong>{filter === 'PENDING_PAYMENT' && <button className="button button--small button--primary" disabled={payment.isPending} onClick={() => payment.mutate(winner)}>Marcar pagado</button>}</article>)}</section>}{prize.isPending && code ? <LoadingState /> : prize.isError ? <ErrorState error={prize.error} /> : prize.data ? <section className="panel prize-card"><span className="prize-icon"><Award /></span><p className="eyebrow">Consulta individual</p><h2>{prize.data.ticketCode}</h2><div className="prize-result"><span>Número ganador <strong>{prize.data.winningNumber || '—'}</strong></span><span>Estado <strong>{prize.data.prizeStatus}</strong></span><span>Premio <strong>{formatCrc(prize.data.prizeAmount)}</strong></span></div>{prize.data.prizeStatus === 'PAID' && <div className="alert alert--info">Premio pagado el {formatCostaRicaDateTime(prize.data.paidAt)}.</div>}</section> : null}</main>;
+}

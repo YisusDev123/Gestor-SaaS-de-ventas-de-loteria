@@ -1,0 +1,89 @@
+{
+  "name": "multi-tenant-sales-saas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Edición demostrativa de un SaaS multi-tenant para gestión de ventas, caja y reportes",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22.15.1 <23"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "lint": "eslint .",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --runInBand",
+    "check": "npm run lint && npm run test:coverage",
+    "audit:dependencies": "npm audit --audit-level=high && npm --prefix frontend audit --audit-level=high",
+    "db:migrate": "node scripts/db-migrate.js",
+    "db:validate": "node scripts/db-validate-migrations.js",
+    "db:test:bootstrap": "node scripts/db-test-bootstrap.js",
+    "test:integration:auth": "node scripts/db-test-auth.js",
+    "test:integration:saas-admin": "node scripts/db-test-saas-admin.js",
+    "test:integration:tenant-settings": "node scripts/db-test-tenant-settings.js",
+    "test:integration:jobs": "node scripts/db-test-jobs.js",
+    "test:integration:cash": "node scripts/db-test-cash.js",
+    "test:integration:sales": "node scripts/db-test-sales.js",
+    "test:integration:results": "node scripts/db-test-results.js",
+    "test:integration:endpoint-concurrency": "node scripts/db-test-endpoint-concurrency.js",
+    "test:stage12:security": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand src/test/security-hardening.test.js src/test/observability.test.js src/test/auth.test.js src/test/sales-sql.test.js src/test/jobs-sql.test.js",
+    "test:stage12:load": "node scripts/db-test-stage12-load.js",
+    "provision:test:admin": "node scripts/provision-test-admin.js",
+    "test:ui:fixture": "node scripts/db-test-ui-fixture.js",
+    "recover:test:draws": "node scripts/db-recover-test-draws.js",
+    "start:test:api": "node scripts/start-test-api.js",
+    "start:test:all": "node scripts/start-test-api.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "hpp": "^0.2.3",
+    "joi": "^18.2.3",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.22.4",
+    "node-cron": "^4.5.0",
+    "pdfkit": "^0.20.2",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.1",
+    "globals": "^17.12.0",
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
+  },
+  "author": "Jesus Jimenez",
+  "license": "MIT",
+  "jest": {
+    "testEnvironment": "node",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/frontend/"
+    ],
+    "collectCoverageFrom": [
+      "app.js",
+      "src/**/*.js",
+      "!src/test/**"
+    ],
+    "coverageReporters": [
+      "text",
+      "json-summary"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 70,
+        "branches": 65,
+        "functions": 70,
+        "lines": 70
+      }
+    }
+  }
+}

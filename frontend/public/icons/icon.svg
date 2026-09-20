@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Gestión de ventas">
+  <rect width="512" height="512" rx="112" fill="#176b4d"/>
+  <path d="M155 148h202a48 48 0 0 1 48 48v120a48 48 0 0 1-48 48H155a48 48 0 0 1-48-48V196a48 48 0 0 1 48-48Z" fill="#f4f6f1" opacity=".12"/>
+  <text x="256" y="300" fill="#fff" font-family="Arial, sans-serif" font-size="140" font-weight="800" text-anchor="middle">GV</text>
+</svg>

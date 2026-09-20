@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.15.1
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run db:validate
+      - run: npm run audit:dependencies
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.15.1
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefix frontend
+      - run: npx --prefix frontend playwright install --with-deps chromium firefox
+      - run: npm run check --prefix frontend
+      - run: npm run test:e2e --prefix frontend
+
+  mysql-integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-only-root-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      NODE_ENV: test
+      ALLOW_DB_TEST_BOOTSTRAP: 'true'
+      ALLOW_DB_INTEGRATION: 'true'
+      SAAS_TEST_CREDENTIALS_FILE: ${{ github.workspace }}/.ci-test.env
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.15.1
+          cache: npm
+      - run: npm ci
+      - name: Crear credenciales efímeras de CI
+        run: |
+          printf '%s\n' \
+            'MYSQL_HOST=127.0.0.1' \
+            'MYSQL_PORT=3306' \
+            'MYSQL_USER=root' \
+            'MYSQL_PASSWORD=ci-only-root-password' > .ci-test.env
+      - run: npm run db:test:bootstrap
+      - run: npm run test:integration:endpoint-concurrency
