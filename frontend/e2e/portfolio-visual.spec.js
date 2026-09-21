@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.skip(process.env.CI === 'true', 'Las referencias visuales del portafolio se generan en Windows.');
+
 const sellerSession = {
   accessToken: 'portfolio-demo-token',
   tokenType: 'Bearer',
