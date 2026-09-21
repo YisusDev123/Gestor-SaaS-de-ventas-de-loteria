@@ -85,6 +85,25 @@ MySQL conserva los importes como `DECIMAL` y JavaScript los trata como strings o
 
 La PWA precachea solamente el shell y assets versionados. No almacena respuestas autenticadas, no usa Background Sync y no encola mutaciones sensibles para ejecutarlas después.
 
+## Retos, decisiones y compensaciones
+
+| Reto | Decisión aplicada | Compensación asumida |
+| --- | --- | --- |
+| Evitar que un negocio acceda a información de otro | Derivar el `tenantId` de la sesión autenticada y aplicarlo en autorización y consultas SQL | Un esquema compartido reduce costo operativo, pero exige revisar cada nuevo acceso a datos; una base por tenant no se justificaba para el alcance actual |
+| Impedir ventas o movimientos duplicados ante reintentos | Combinar claves idempotentes, restricciones únicas y transacciones InnoDB | El contrato debe conservar el mismo identificador durante todo el reintento y añade estados de recuperación |
+| Mantener caja, ticket y exposición consistentes bajo concurrencia | Bloquear filas críticas dentro de una transacción y conservar un orden estable de locks | Las secciones críticas pueden serializar operaciones sobre los mismos recursos, a cambio de impedir saldos parciales |
+| Ejecutar sorteos y procesos programados sin duplicarlos | Diseñar jobs idempotentes y coordinarlos mediante locks persistidos en MySQL | Evita introducir una cola adicional en esta etapa, aunque MySQL también asume la coordinación de jobs |
+| Preservar la explicación histórica de una venta | Versionar configuración y guardar snapshots de los valores que afectan cálculos | Consume más almacenamiento y requiere modelos explícitos, pero una regla futura no reescribe el pasado |
+| Ofrecer una PWA sin comprometer operaciones sensibles | Cachear solamente el shell y recursos públicos; mantener las mutaciones financieras en línea | La aplicación no permite vender offline, priorizando consistencia y confirmación del servidor |
+
+### Aprendizajes principales
+
+- El multi-tenancy no es solamente una columna: afecta identidad, autorización, consultas, jobs, límites y pruebas.
+- La idempotencia necesita respaldo en la base de datos; una comprobación previa en memoria no cubre solicitudes concurrentes.
+- Los flujos de dinero deben probar también rollback, duplicados y concurrencia, no únicamente el camino exitoso.
+- Una arquitectura modular resulta útil cuando permite cambiar una regla sin duplicarla entre HTTP, jobs y persistencia.
+- Agregar infraestructura antes de necesitarla puede aumentar el costo operativo; para este alcance, MySQL cubre datos, locks e idempotencia de forma suficiente.
+
 ## Stack
 
 Backend:
