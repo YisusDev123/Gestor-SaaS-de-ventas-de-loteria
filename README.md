@@ -4,6 +4,14 @@ Aplicación web full-stack para administrar ventas, caja, resultados, premios y 
 
 > Edición demostrativa para portafolio. Utiliza exclusivamente datos ficticios, no custodia ni transfiere dinero y no está afiliada con ninguna institución oficial.
 
+## Vista del producto
+
+| Acceso de vendedor | Resumen operativo |
+| --- | --- |
+| ![Acceso de vendedor](frontend/e2e/portfolio-visual.spec.js-snapshots/acceso-saas-chromium-escritorio-win32.png) | ![Dashboard con datos ficticios](frontend/e2e/portfolio-visual.spec.js-snapshots/dashboard-saas-chromium-escritorio-win32.png) |
+
+Las capturas se generan mediante una prueba visual reproducible. El dashboard intercepta todas las solicitudes y utiliza exclusivamente una sesión, importes y sorteos ficticios.
+
 ## Problema que resuelve
 
 La aplicación reemplaza registros manuales y cálculos dispersos por un flujo trazable:
